@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vaultwarden
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  selector:
+    matchLabels:
+      app: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+    spec:
+      hostname: vaultwarden
+      volumes:
+      - name: vaultwarden
+        nfs:
+          path: /mnt/user/appdata/kube/vaultwarden
+          server: hydaelyn.storage.coleslab.com
+      containers:
+      - name: vaultwarden
+        image: vaultwarden/server:latest
+        ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - name: vaultwarden
+          mountPath: /data
+        resources:
+          limits: 
+            cpu: 1
+            memory: 4Gi
+        env:
+        - name: DATABASE_URL
+          valueFrom: 
+            secretKeyRef:
+              name: postgres
+              key: url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  selector:
+    app: vaultwarden
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  podSelector:
+    matchLabels:
+      app: vaultwarden
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # - {}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    #   podSelector:
+    #     matchLabels:
+    #       app.kubernetes.io/name: traefik
+    # - namespaceSelector:
+    #     matchLabels:
+    #       kubernetes.io/metadata.name: cloudflared
+    #   podSelector:
+    #     matchLabels:
+    #       app: cloudflared
+    ports:
+    - protocol: TCP
+      port: 80
+  egress:
+  - {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  secretName: vaultwarden-tls
+  dnsNames:
+  - vaultwarden.services.coleslab.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vaultwarden
+  namespace: vaultwarden
+spec:
+  rules:
+  - host: vaultwarden.services.coleslab.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: vaultwarden
+            port:
+              number: 80
+        pathType: Prefix
+        path: '/'
+  - host: vaultwarden.coleslab.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: vaultwarden
+            port:
+              number: 80
+        pathType: Prefix
+        path: '/'
+  tls:
+  - hosts: 
+    - vaultwarden.services.coleslab.com
+    secretName: vaultwarden-tls

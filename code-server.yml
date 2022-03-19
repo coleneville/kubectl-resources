@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: code-server
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: appdata
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteMany
+  storageClassName: standard
+  nfs:
+    path: /mnt/user/appdata/kube
+    server: hydaelyn.storage.coleslab.com
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: projects
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+  - ReadWriteMany
+  storageClassName: standard
+  mountOptions:
+  - hard
+  nfs:
+    path: /mnt/user/projects
+    server: hydaelyn.storage.coleslab.com
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appdata
+  namespace: code-server
+spec:
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: appdata
+  storageClassName: standard
+  accessModes:
+  - ReadWriteMany
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: projects
+  namespace: code-server
+spec:
+  resources:
+    requests:
+      storage: 100Gi
+  volumeName: projects
+  storageClassName: standard
+  accessModes:
+  - ReadWriteMany
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  selector:
+    matchLabels:
+      app: code-server
+  template:
+    metadata:
+      labels:
+        app: code-server
+    spec:
+      hostname: code-server
+      dnsConfig:
+        nameservers:
+        - 192.168.90.1
+        - 192.168.95.1
+      volumes:
+      - name: appdata
+        persistentVolumeClaim:
+          claimName: appdata
+      - name: projects
+        persistentVolumeClaim:
+          claimName: projects
+      containers:
+      - name: code-server
+        image: codercom/code-server:latest
+        ports:
+        - name: http
+          containerPort: 8080
+        volumeMounts:
+        - name: appdata
+          mountPath: /home/coder/.config
+          subPath: code-server/config
+        - name: appdata
+          mountPath: /home/coder/.local/share/code-server
+          subPath: code-server/code-server
+        - name: projects
+          mountPath: /home/coder/projects
+        resources:
+          limits:
+            cpu: 1
+            memory: 4Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  selector:
+    app: code-server
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  secretName: code-server-tls
+  dnsNames:
+  - code-server.services.coleslab.com
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: code-server
+  namespace: code-server
+spec:
+  rules:
+  - host: code-server.services.coleslab.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: code-server
+            port:
+              number: 80
+        pathType: Prefix
+        path: '/'
+  tls:
+  - hosts: 
+    - code-server.services.coleslab.com
+    secretName: code-server-tls

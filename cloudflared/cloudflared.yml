@@ -1,0 +1,76 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflared
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appdata-longhorn
+  namespace: cloudflared
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn-static
+  volumeMode: Filesystem
+  volumeName: cloudflared-longhorn
+  accessModes:
+  - ReadWriteMany
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  selector:
+    matchLabels:
+      app: cloudflared
+  template:
+    metadata:
+      labels:
+        app: cloudflared
+    spec:
+      volumes:
+      - name: appdata-longhorn
+        persistentVolumeClaim:
+          claimName: appdata-longhorn
+      containers:
+      - name: setup
+        image: ubuntu
+        command:
+        - /bin/sh
+        args:
+        - '-c'
+        - |
+          echo '
+          tunnel: e7ba2cd3-ec45-404f-9792-3363ef546a16
+          credentials_file: /etc/cloudflared/e7ba2cd3-ec45-404f-9792-3363ef546a16.json
+
+          ingress:
+          - service: http_status:404
+          ' > /etc/cloudflared/config.yml & tail -f /dev/null
+        volumeMounts:
+        - name: appdata-longhorn
+          mountPath: /etc/cloudflared
+          subPath: config
+        resources:
+          limits:
+            cpu: 0.1
+            memory: 1Gi
+      - name: cloudflared
+        image: cloudflare/cloudflared:2022.1.2
+        args:
+        - tunnel
+        - --config 
+        - /etc/cloudflared/config.yml
+        - run
+        volumeMounts:
+        - name: appdata-longhorn
+          mountPath: /etc/cloudflared
+          subPath: config
+        resources:
+          limits:
+            cpu: 1
+            memory: 2Gi
