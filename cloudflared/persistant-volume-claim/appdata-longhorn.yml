@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appdata-longhorn
+  namespace: cloudflared
+spec:
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn-static
+  volumeMode: Filesystem
+  volumeName: cloudflared-longhorn
+  accessModes:
+  - ReadWriteMany
