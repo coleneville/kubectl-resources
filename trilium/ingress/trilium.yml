@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trilium
+  namespace: trilium
+spec:
+  rules:
+  - host: trilium.services.coleslab.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: trilium
+            port:
+              number: 80
+        pathType: Prefix
+        path: '/'
+  tls:
+  - hosts: 
+    - trilium.services.coleslab.com
+    secretName: trilium-tls

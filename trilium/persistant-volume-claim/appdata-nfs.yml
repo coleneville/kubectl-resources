@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: appdata-nfs
+  namespace: trilium
+spec:
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: ''
+  volumeName: trilium-appdata-nfs
+  accessModes:
+  - ReadWriteOnce
