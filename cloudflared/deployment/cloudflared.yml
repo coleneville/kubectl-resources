@@ -37,8 +37,8 @@ spec:
           subPath: config
         resources:
           limits:
-            cpu: 0.1
-            memory: 1Gi
+            cpu: "500m"
+            memory: "512Mi"
       - name: cloudflared
         image: cloudflare/cloudflared:2022.1.2
         args:
@@ -52,5 +52,5 @@ spec:
           subPath: config
         resources:
           limits:
-            cpu: 1
-            memory: 2Gi
+            cpu: "1"
+            memory: "1Gi"
