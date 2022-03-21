@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-longhorn
+  namespace: cloudflared
+spec:
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: longhorn-static
+  volumeMode: Filesystem
+  volumeName: seafile-mysql-longhorn
+  accessModes:
+  - ReadWriteMany

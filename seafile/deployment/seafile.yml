@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seafile
+  namespace: seafile
+spec:
+  selector:
+    matchLabels:
+      app: seafile
+  template:
+    metadata:
+      label: seafile
+    spec:
+      hostname: seafile
+      volumes:
+      - name: appdata-nfs
+        persistentVolumeClaim:
+          claimName: appdata-nfs
+      - name: mysql-longhorn
+        persistentVolumeClaim:
+          claimName: mysql-longhorn
+      containers:
+      - name: mysql
+        image: mariadb:10.5
+        ports:
+        - name: mysql
+          containerPort: 3306
+        volumeMounts:
+        - name: mysql-longhorn
+          mountPath: /var/lib/mysql
+          subPath: data
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mysql-root-password
+        - name: MYSQL_lOG_CONSOLE
+          value: 'true'
+        resources:
+          limits:
+            cpu: '1'
+            memory: '512Mi'
