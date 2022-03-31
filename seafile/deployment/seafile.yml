@@ -9,7 +9,8 @@ spec:
       app: seafile
   template:
     metadata:
-      label: seafile
+      labels:
+        app: seafile
     spec:
       hostname: seafile
       volumes:
@@ -33,10 +34,53 @@ spec:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: mysql-root-password
+              name: mysql-root-password
+              key: password
         - name: MYSQL_lOG_CONSOLE
           value: 'true'
         resources:
           limits:
-            cpu: '1'
+            cpu: '500m'
             memory: '512Mi'
+      - name: memcached
+        image: memcached:1.5.6
+        command: 
+          - memcached
+          - -m
+          - '256'
+        resources:
+          limits:
+            cpu: '250m'
+            memory: '256Mi'
+      - name: seafile
+        image: seafileltd/seafile-mc:latest
+        ports:
+        - name: http
+          containerPort: 80
+        volumeMounts:
+        - name: appdata-nfs
+          mountPath: /shared
+          subPath: data
+        env:
+        - name: DB_HOST
+          value: mysql
+        - name: DB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-root-password
+              key: password
+        - name: TIME_ZONE
+          value: America/Edmonton
+        - name: SEAFILE_ADMIN_EMAIL
+          value: colewneville2@gmail.com
+        - name: SEAFILE_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: default-admin-password
+              key: password
+        - name: SEAFILE_SERVER_LETSENCRYPT
+          value: 'false'
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi

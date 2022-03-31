@@ -29,6 +29,8 @@ spec:
           credentials_file: /etc/cloudflared/e7ba2cd3-ec45-404f-9792-3363ef546a16.json
 
           ingress:
+          - hostname: trilium.coleslab.com
+            service: http://192.168.95.130
           - service: http_status:404
           ' > /etc/cloudflared/config.yml & tail -f /dev/null
         volumeMounts:
