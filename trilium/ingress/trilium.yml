@@ -15,6 +15,16 @@ spec:
               number: 80
         pathType: Prefix
         path: '/'
+  - host: trilium.services.coleslab.com
+    http: 
+      paths:
+      - backend:
+          service:
+            name: trilium
+            port:
+              number: 80
+        pathType: Prefix
+        path: '/'
   tls:
   - hosts: 
     - trilium.services.coleslab.com
